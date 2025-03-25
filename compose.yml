@@ -1,7 +1,6 @@
 services: 
   web: 
     build: ./backend/.
-    env_file: ./.env
     command: "python3 app.py"
     develop: 
       watch: 
