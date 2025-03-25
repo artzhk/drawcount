@@ -1,8 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Draw Count</title>
     <style>
@@ -48,7 +51,9 @@
         Draw on Your Image
       </h2>
 
-      <div class="flex flex-col md:flex-row justify-center items-center space-y-2 md:space-y-0 md:space-x-6 mt-6 button-group">
+      <div
+        class="flex flex-col md:flex-row justify-center items-center space-y-2 md:space-y-0 md:space-x-6 mt-6 button-group"
+      >
         <button
           onclick="undoLastStroke()"
           class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg w-full md:w-auto"
@@ -61,16 +66,15 @@
         >
           Clear
         </button>
-        <span id="strokeCount" class="text-lg text-center md:text-left">Strokes: 0</span>
+        <span id="strokeCount" class="text-lg text-center md:text-left"
+          >Strokes: 0</span
+        >
       </div>
       <div
         id="canvasContainer"
         class="relative w-full flex justify-center items-center overflow-auto mt-8 max-h-[70vh] border border-gray-300 rounded-md bg-gray-200"
       >
-        <canvas
-          id="drawingCanvas"
-          class="max-w-full max-h-full"
-        />
+        <canvas id="drawingCanvas" class="max-w-full max-h-full" />
       </div>
     </div>
   </body>
@@ -91,38 +95,33 @@
     let canvasOffsetY = 0;
     let canvasScale = 1;
 
-    // Initialize canvas size
     function resizeCanvas() {
       if (!img.src) return;
 
       const container = document.getElementById("canvasContainer");
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
+      const maxDisplayWidth = container.clientWidth;
+      const maxDisplayHeight = container.clientHeight;
 
-      // Calculate scaling to fit container while maintaining aspect ratio
-      const imgRatio = img.width / img.height;
-      const containerRatio = containerWidth / containerHeight;
+      // Calculate the scaling needed to fit the image within display bounds
+      // while maintaining the original aspect ratio
+      const scaleX = maxDisplayWidth / img.width;
+      const scaleY = maxDisplayHeight / img.height;
+      canvasScale = Math.min(scaleX, scaleY);
 
-      if (imgRatio > containerRatio) {
-        // Image is wider than container
-        canvasScale = containerWidth / img.width;
-      } else {
-        // Image is taller than container
-        canvasScale = containerHeight / img.height;
-      }
+      // Set canvas display size (CSS pixels) - this is what users see
+      canvas.style.width = img.width * canvasScale + "px";
+      canvas.style.height = img.height * canvasScale + "px";
 
-      // Set canvas display size (CSS pixels)
-      canvas.style.width = (img.width * canvasScale) + "px";
-      canvas.style.height = (img.height * canvasScale) + "px";
-
-      // Set canvas drawing buffer size (actual pixels)
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
+      // Set canvas drawing buffer size (actual pixels) - maintain high resolution
+      // but keep the same aspect ratio as the original image
+      const bufferScale = Math.max(1, scale); // Don't go below 1x scale
+      canvas.width = img.width * bufferScale;
+      canvas.height = img.height * bufferScale;
 
       // Reset transform and scale for high DPI displays
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(scale, scale);
-      
+      ctx.scale(bufferScale, bufferScale);
+
       // Redraw everything
       redrawCanvas();
     }
@@ -170,8 +169,9 @@
       const file = event.target.files[0];
       paths = [];
       strokeCount = 0;
-      document.getElementById("strokeCount").innerText = `Strokes: ${strokeCount}`;
-      
+      document.getElementById("strokeCount").innerText =
+        `Strokes: ${strokeCount}`;
+
       if (file) {
         const reader = new FileReader();
         reader.onload = function (readerEvent) {
@@ -187,11 +187,11 @@
     // Get proper canvas coordinates accounting for scaling and positioning
     function getCanvasCoordinates(event) {
       const rect = canvas.getBoundingClientRect();
-      
+
       let clientX, clientY;
-      
+
       // Handle both mouse and touch events
-      if (event.type.includes('touch')) {
+      if (event.type.includes("touch")) {
         if (event.touches.length === 0) return { x: 0, y: 0 };
         clientX = event.touches[0].clientX;
         clientY = event.touches[0].clientY;
@@ -199,11 +199,11 @@
         clientX = event.clientX;
         clientY = event.clientY;
       }
-      
+
       // Calculate position relative to canvas
       const x = (clientX - rect.left) / canvasScale;
       const y = (clientY - rect.top) / canvasScale;
-      
+
       return { x, y };
     }
 
@@ -287,7 +287,7 @@
     window.addEventListener("load", () => {
       // Set a minimum canvas size
       canvas.style.width = "100%";
-      canvas.style.height = "300px";
+      canvas.style.height = "100%";
       canvas.width = 300 * scale;
       canvas.height = 300 * scale;
       ctx.fillStyle = "#ffffff";
