@@ -1,17 +1,33 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Draw Count</title>
+    <style>
+      /* Prevent touch zooming on canvas */
+      #drawingCanvas {
+        touch-action: none;
+      }
+      /* Mobile-specific adjustments */
+      @media (max-width: 640px) {
+        .button-group {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .button-group button {
+          width: 100%;
+        }
+      }
+    </style>
   </head>
-  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div
       id="canvasBorder"
-      class="bg-white p-8 rounded-lg shadow-lg mx-auto max-w-7xl w-full"
+      class="bg-white p-4 md:p-8 rounded-lg shadow-lg w-full max-w-7xl"
     >
-      <h1 class="text-3xl font-semibold text-center mb-4">
+      <h1 class="text-2xl md:text-3xl font-semibold text-center mb-4">
         Welcome to Draw Count App!
       </h1>
       <p class="text-gray-600 text-center mb-6">
@@ -25,35 +41,35 @@
         onchange="loadImage(event)"
         accept="image/*"
         required
-        class="block w-full mb-6 p-3 border rounded-md shadow-sm"
+        class="block w-full mb-6 p-2 md:p-3 border rounded-md shadow-sm"
       />
 
-      <h2 class="text-2xl font-semibold text-center mb-4">
+      <h2 class="text-xl md:text-2xl font-semibold text-center mb-4">
         Draw on Your Image
       </h2>
 
-      <div class="flex justify-center items-center space-x-6 mt-6">
+      <div class="flex flex-col md:flex-row justify-center items-center space-y-2 md:space-y-0 md:space-x-6 mt-6 button-group">
         <button
           onclick="undoLastStroke()"
-          class="bg-red-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg"
+          class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg w-full md:w-auto"
         >
           Undo
         </button>
         <button
           onclick="clearCanvas()"
-          class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg"
+          class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg w-full md:w-auto"
         >
           Clear
         </button>
-        <span id="strokeCount" class="text-lg">Strokes: 0</span>
+        <span id="strokeCount" class="text-lg text-center md:text-left">Strokes: 0</span>
       </div>
       <div
         id="canvasContainer"
-        class="relative w-full flex justify-center items-center overflow-auto mt-8"
+        class="relative w-full flex justify-center items-center overflow-auto mt-8 max-h-[70vh] border border-gray-300 rounded-md bg-gray-200"
       >
         <canvas
           id="drawingCanvas"
-          class="top-0 left-0 w-full h-full border border-gray-300 rounded-md"
+          class="max-w-full max-h-full"
         />
       </div>
     </div>
@@ -71,33 +87,56 @@
 
     let paths = [];
     let currentPath = [];
+    let canvasOffsetX = 0;
+    let canvasOffsetY = 0;
+    let canvasScale = 1;
 
     // Initialize canvas size
     function resizeCanvas() {
-      const container = document.getElementById("canvasContainer");
+      if (!img.src) return;
 
-      canvas.style.width = img.width + "px";
-      canvas.style.height = img.height + "px";
+      const container = document.getElementById("canvasContainer");
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      // Calculate scaling to fit container while maintaining aspect ratio
+      const imgRatio = img.width / img.height;
+      const containerRatio = containerWidth / containerHeight;
+
+      if (imgRatio > containerRatio) {
+        // Image is wider than container
+        canvasScale = containerWidth / img.width;
+      } else {
+        // Image is taller than container
+        canvasScale = containerHeight / img.height;
+      }
+
+      // Set canvas display size (CSS pixels)
+      canvas.style.width = (img.width * canvasScale) + "px";
+      canvas.style.height = (img.height * canvasScale) + "px";
+
+      // Set canvas drawing buffer size (actual pixels)
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
 
+      // Reset transform and scale for high DPI displays
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0);
-
-      container.style.height = img.height + "px";
+      
+      // Redraw everything
+      redrawCanvas();
     }
 
-    function redrewCanvas() {
+    function redrawCanvas() {
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Redraw image if exists
       if (img.src) {
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, img.width, img.height);
       }
 
-      // Redraw all paths except the undone one
+      // Redraw all paths
       ctx.lineCap = "round";
       ctx.lineWidth = 5;
       ctx.strokeStyle = "#ff0000";
@@ -124,44 +163,15 @@
       strokeCount = Math.max(0, strokeCount - 1);
       document.getElementById("strokeCount").innerText =
         `Strokes: ${strokeCount}`;
-      redrewCanvas();
-    }
-
-    // Draw image to canvas (properly scaled)
-    function drawImageToCanvas() {
-      const container = document.getElementById("canvasContainer");
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Calculate aspect ratio preserving dimensions
-      const imgRatio = img.width / img.height;
-      const containerRatio = width / height;
-
-      let drawWidth,
-        drawHeight,
-        offsetX = 0,
-        offsetY = 0;
-
-      if (imgRatio > containerRatio) {
-        drawWidth = width;
-        drawHeight = width / imgRatio;
-        offsetY = (height - drawHeight) / 2;
-      } else {
-        drawHeight = height;
-        drawWidth = height * imgRatio;
-        offsetX = (width - drawWidth) / 2;
-      }
-
-      // Draw image centered and scaled to fit
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      redrawCanvas();
     }
 
     function loadImage(event) {
       const file = event.target.files[0];
       paths = [];
+      strokeCount = 0;
+      document.getElementById("strokeCount").innerText = `Strokes: ${strokeCount}`;
+      
       if (file) {
         const reader = new FileReader();
         reader.onload = function (readerEvent) {
@@ -174,61 +184,90 @@
       }
     }
 
-    // Get proper canvas coordinates accounting for scaling
+    // Get proper canvas coordinates accounting for scaling and positioning
     function getCanvasCoordinates(event) {
       const rect = canvas.getBoundingClientRect();
-      const x =
-        ((event.clientX - rect.left) * (canvas.width / rect.width)) / scale;
-      const y =
-        ((event.clientY - rect.top) * (canvas.height / rect.height)) / scale;
+      
+      let clientX, clientY;
+      
+      // Handle both mouse and touch events
+      if (event.type.includes('touch')) {
+        if (event.touches.length === 0) return { x: 0, y: 0 };
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+      
+      // Calculate position relative to canvas
+      const x = (clientX - rect.left) / canvasScale;
+      const y = (clientY - rect.top) / canvasScale;
+      
       return { x, y };
     }
 
-    canvas.addEventListener("mousedown", (e) => {
-      const pos = getCanvasCoordinates(e);
+    function startDrawing(pos) {
       isDrawing = true;
       strokeCount++;
       currentPath = [{ x: pos.x, y: pos.y }];
-      currentX = pos.x;
-      currentY = pos.y;
       document.getElementById("strokeCount").innerText =
         `Strokes: ${strokeCount}`;
 
       // Start a new path immediately
       ctx.beginPath();
-      ctx.moveTo(currentX, currentY);
+      ctx.moveTo(pos.x, pos.y);
       ctx.lineCap = "round";
       ctx.lineWidth = 5;
       ctx.strokeStyle = "#ff0000";
-    });
+    }
 
-    canvas.addEventListener("mouseup", () => {
-      if (isDrawing && currentPath.length > 1) {
-        paths.push(currentPath);
-      }
-
-      console.log(paths);
-      isDrawing = false;
-    });
-
-    canvas.addEventListener("mouseout", () => {
-      isDrawing = false;
-    });
-
-    canvas.addEventListener("mousemove", draw);
-
-    function draw(event) {
+    function continueDrawing(pos) {
       if (!isDrawing) return;
 
-      const pos = getCanvasCoordinates(event);
       currentPath.push({ x: pos.x, y: pos.y });
 
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
-
-      currentX = pos.x;
-      currentY = pos.y;
     }
+
+    function endDrawing() {
+      if (isDrawing && currentPath.length > 1) {
+        paths.push(currentPath);
+      }
+      isDrawing = false;
+    }
+
+    // Mouse event handlers
+    canvas.addEventListener("mousedown", (e) => {
+      const pos = getCanvasCoordinates(e);
+      startDrawing(pos);
+    });
+
+    canvas.addEventListener("mouseup", endDrawing);
+    canvas.addEventListener("mouseout", endDrawing);
+    canvas.addEventListener("mousemove", (e) => {
+      const pos = getCanvasCoordinates(e);
+      continueDrawing(pos);
+    });
+
+    // Touch event handlers for mobile devices
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      const pos = getCanvasCoordinates(e);
+      startDrawing(pos);
+    });
+
+    canvas.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      endDrawing();
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      const pos = getCanvasCoordinates(e);
+      continueDrawing(pos);
+    });
 
     function clearCanvas() {
       paths = [];
@@ -236,13 +275,23 @@
       strokeCount = 0;
       document.getElementById("strokeCount").innerText =
         `Strokes: ${strokeCount}`;
-      redrewCanvas();
+      redrawCanvas();
     }
 
     // Handle window resize
-    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+    });
 
-    // Initialize canvas size on load
-    window.addEventListener("load", resizeCanvas);
+    // Initialize with a blank state
+    window.addEventListener("load", () => {
+      // Set a minimum canvas size
+      canvas.style.width = "100%";
+      canvas.style.height = "300px";
+      canvas.width = 300 * scale;
+      canvas.height = 300 * scale;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    });
   </script>
 </html>
