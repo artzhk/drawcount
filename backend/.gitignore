@@ -1,0 +1,9 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+.venv/
+__pycache__/
+Session.vim
+
+# the following is corrently in development
+db.py
+models.py
+

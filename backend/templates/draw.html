@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Draw on Image</title>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+      <h1 class="text-3xl font-bold text-center mb-4">Draw on Your Image</h1>
+      <canvas
+        id="drawingCanvas"
+        class="border border-gray-300"
+        width="600"
+        height="400"
+      ></canvas>
+      <div class="mt-4 text-center">
+        <button
+          onclick="clearCanvas()"
+          class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg"
+        >
+          Clear
+        </button>
+        <span id="strokeCount" class="ml-4">Strokes: 0</span>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("drawingCanvas");
+      const ctx = canvas.getContext("2d");
+      let isDrawing = false;
+      let strokeCount = 0;
+
+      function loadImage() {
+        const image = new Image();
+        image.src = "data:{{ mimetype }};base64, {{ image }}";
+        image.onload = function () {
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        };
+      }
+
+      loadImage();
+
+      canvas.addEventListener("mousedown", () => {
+        isDrawing = true;
+        strokeCount++;
+        document.getElementById("strokeCount").innerText =
+          `Strokes: ${strokeCount}`;
+      });
+
+      canvas.addEventListener("mouseup", () => (isDrawing = false));
+      canvas.addEventListener("mousemove", draw);
+
+      function draw(event) {
+        if (!isDrawing) return;
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#000";
+
+        ctx.lineTo(event.offsetX, event.offsetY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(event.offsetX, event.offsetY);
+      }
+
+      function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        loadImage();
+        strokeCount = 0;
+        document.getElementById("strokeCount").innerText =
+          `Strokes: ${strokeCount}`;
+      }
+    </script>
+  </body>
+</html>

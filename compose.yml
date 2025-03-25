@@ -1,0 +1,21 @@
+services: 
+  web: 
+    build: ./backend/.
+    env_file: ./.env
+    command: "python3 app.py"
+    develop: 
+      watch: 
+        - action: rebuild
+          path: ./backend/.venv
+          target: /code
+        - action: sync
+          path: ./backend/templates
+          target: /code/templates
+    ports: 
+      - "5001:5001"
+    depends_on: 
+      redis: 
+        condition: service_started
+
+  redis: 
+    image: "redis:alpine"
