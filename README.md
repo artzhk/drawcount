@@ -1,6 +1,6 @@
 
 # [drawcount](https://artzhk.github.io/drawcount/)
-Simple web app to draw strokes and get the number of drawn. Created by request of my scientific frends who asked me to create the app.
+Simple web app to draw strokes and get the number of drawn ones. Created by request of my friends from universities labs.
 
 # Why? 
 Couldn't find something similar on internet. That is why it is here.
