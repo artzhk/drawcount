@@ -7,4 +7,3 @@ Couldn't find something similar on internet. That is why it is here.
 
 # ToDo:
 - Save photos path and count number to database, per user. Get list of uploaded photos and strokes counted for every pic was in use.
-- Harden containers from attacks from the internet.
